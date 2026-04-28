@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ellipse of Uncertainty — Survey Tool Comparison</title>
+<style>
+  :root[data-theme="dark"] {
+    --bg-page:    #0d1117;
+    --bg-panel:   #161b22;
+    --bg-inset:   #0d1117;
+    --bg-header:  #21262d;
+    --border:     #21262d;
+    --border-2:   #30363d;
+    --text-pri:   #e6edf3;
+    --text-sec:   #8b949e;
+    --text-muted: #6e7681;
+    --accent:     #58a6ff;
+    --btn-bg:     #1f6feb;
+    --btn-hover:  #388bfd;
+    --canvas-bg:  #0d1117;
+    --grid-line:  rgba(48,54,61,0.9);
+    --axis-line:  #30363d;
+    --center-dot: #ffffff;
+    --center-ring:#0d1117;
+    --td-label:   #e6edf3;
+  }
+  :root[data-theme="light"] {
+    --bg-page:    #f5f6f8;
+    --bg-panel:   #ffffff;
+    --bg-inset:   #f0f1f3;
+    --bg-header:  #e8eaed;
+    --border:     #d0d7de;
+    --border-2:   #c4cdd6;
+    --text-pri:   #1c2128;
+    --text-sec:   #57606a;
+    --text-muted: #8c959f;
+    --accent:     #0969da;
+    --btn-bg:     #0969da;
+    --btn-hover:  #0550ae;
+    --canvas-bg:  #ffffff;
+    --grid-line:  rgba(180,188,196,0.6);
+    --axis-line:  #c4cdd6;
+    --center-dot: #1c2128;
+    --center-ring:#ffffff;
+    --td-label:   #1c2128;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Courier New', monospace;
+    background: var(--bg-page);
+    color: var(--text-pri);
+    min-height: 100vh;
+    padding: 24px;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  /* Theme pill toggle */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    background: var(--bg-header);
+    border: 1px solid var(--border-2);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .theme-opt {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 16px;
+    color: var(--text-sec);
+    transition: background 0.15s, color 0.15s;
+  }
+  .theme-opt.active {
+    background: var(--btn-bg);
+    color: #fff;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-sec);
+    margin-bottom: 16px;
+  }
+  .field-group {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .field-group-header {
+    background: var(--bg-header);
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-sec);
+  }
+  .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .field-inner { padding: 12px; }
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-sec);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    background: var(--bg-inset);
+    border: 1px solid var(--border-2);
+    border-radius: 4px;
+    color: var(--text-pri);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 7px 10px;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus {
+    border-color: var(--accent);
+  }
+  .global-field { margin-bottom: 16px; }
+  select { cursor: pointer; }
+
+  /* Unit row */
+  .unit-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .unit-btn {
+    flex: 1;
+    background: var(--bg-inset);
+    border: 1px solid var(--border-2);
+    border-radius: 4px;
+    color: var(--text-sec);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .unit-btn.active {
+    background: var(--btn-bg);
+    border-color: var(--btn-bg);
+    color: #fff;
+  }
+
+  .btn {
+    width: 100%;
+    background: var(--btn-bg);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+  }
+  .btn:hover { background: var(--btn-hover); }
+
+  .chart-wrap {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chart-main-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-pri);
+  }
+  .chart-sub { font-size: 11px; color: var(--text-sec); margin-top: 3px; }
+  .legend { display: flex; flex-direction: column; gap: 5px; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-sec);
+    letter-spacing: 0.04em;
+  }
+  .legend-line { width: 22px; height: 2px; border-radius: 1px; }
+  canvas#eouCanvas {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: block;
+  }
+  .axis-label-x {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-sec);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .axis-label-y-wrap { display: flex; align-items: stretch; }
+  .axis-label-y {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 11px;
+    color: var(--text-sec);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-right: 4px;
+    text-align: center;
+  }
+  .confidence-badge {
+    background: var(--bg-header);
+    border: 1px solid var(--border-2);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-sec);
+    text-transform: uppercase;
+  }
+  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>&#9632; Ellipse of Uncertainty</h1>
+  <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
+    <div class="theme-opt active" id="optDark">Dark</div>
+    <div class="theme-opt" id="optLight">Light</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="panel">
+    <div class="panel-title">Input Parameters</div>
+
+    <!-- Unit selector -->
+    <div class="global-field">
+      <label>Unit System</label>
+      <div class="unit-row">
+        <div class="unit-btn active" id="unitM"  onclick="setUnit('m')">Metric (m)</div>
+        <div class="unit-btn"        id="unitFt" onclick="setUnit('ft')">English (ft)</div>
+      </div>
+    </div>
+
+    <div class="global-field">
+      <label id="tdLabel">Total Depth (m)</label>
+      <input type="number" id="totalDepth" value="8000" min="0" step="100">
+    </div>
+
+    <div class="global-field">
+      <label>Confidence Level</label>
+      <select id="confidenceLevel">
+        <option value="1.000 Sigma (1D — 68%)">1.000 Sigma (1D — 68%)</option>
+        <option value="2.000 Sigma (2D — 95%)">2.000 Sigma (2D — 95%)</option>
+        <option value="3.000 Sigma (3D — 99.7%)" selected>3.000 Sigma (3D — 99.7%)</option>
+      </select>
+    </div>
+
+    <!-- Tool 1 -->
+    <div class="field-group">
+      <div class="field-group-header">
+        <div class="color-dot" style="background:#58a6ff;"></div>Survey Tool 1
+      </div>
+      <div class="field-inner">
+        <label>Tool Name</label>
+        <input type="text" id="name1" value="MWD+IFR2+SAG+MS">
+        <label id="lbl_major1">Semi-Major / X-axis (m)</label>
+        <input type="number" id="major1" value="130" min="0" step="1">
+        <label id="lbl_minor1">Semi-Minor / Y-axis (m)</label>
+        <input type="number" id="minor1" value="38" min="0" step="1">
+      </div>
+    </div>
+
+    <!-- Tool 2 -->
+    <div class="field-group">
+      <div class="field-group-header">
+        <div class="color-dot" style="background:#f78166;"></div>Survey Tool 2
+      </div>
+      <div class="field-inner">
+        <label>Tool Name</label>
+        <input type="text" id="name2" value="GYD-OmegaX">
+        <label id="lbl_major2">Semi-Major / X-axis (m)</label>
+        <input type="number" id="major2" value="55" min="0" step="1">
+        <label id="lbl_minor2">Semi-Minor / Y-axis (m)</label>
+        <input type="number" id="minor2" value="22" min="0" step="1">
+      </div>
+    </div>
+
+    <!-- Tool 3 -->
+    <div class="field-group">
+      <div class="field-group-header">
+        <div class="color-dot" style="background:#3fb950;"></div>
+        Survey Tool 3 <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">(optional)</span>
+      </div>
+      <div class="field-inner">
+        <label>Tool Name</label>
+        <input type="text" id="name3" placeholder="Leave blank to hide">
+        <label id="lbl_major3">Semi-Major / X-axis (m)</label>
+        <input type="number" id="major3" placeholder="e.g. 80" min="0" step="1">
+        <label id="lbl_minor3">Semi-Minor / Y-axis (m)</label>
+        <input type="number" id="minor3" placeholder="e.g. 30" min="0" step="1">
+      </div>
+    </div>
+
+    <button class="btn" onclick="drawPlot()">&#9654; Plot the EOU</button>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-wrap">
+    <div class="chart-meta">
+      <div>
+        <div class="chart-main-title">Wellbore Position Uncertainty</div>
+        <div class="chart-sub" id="chartSubtitle"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="confidence-badge" id="confBadge">3.000 Sigma</div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <div class="axis-label-y-wrap">
+      <div class="axis-label-y" id="yAxisLabel">Highside [m]</div>
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <canvas id="eouCanvas"></canvas>
+        <div class="axis-label-x" id="xAxisLabel">Lateral [m]</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS     = ['#58a6ff','#f78166','#3fb950'];
+const COLORS_DIM = ['rgba(88,166,255,0.13)','rgba(247,129,102,0.13)','rgba(63,185,80,0.13)'];
+
+let currentUnit  = 'm';
+let currentTheme = 'dark';
+
+/* ─── Unit toggle ──────────────────────────────────── */
+function setUnit(u) {
+  currentUnit = u;
+  document.getElementById('unitM').classList.toggle('active', u === 'm');
+  document.getElementById('unitFt').classList.toggle('active', u === 'ft');
+  const ul = u;
+  document.getElementById('tdLabel').textContent = `Total Depth (${ul})`;
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('lbl_major' + i).textContent = `Semi-Major / X-axis (${ul})`;
+    document.getElementById('lbl_minor' + i).textContent = `Semi-Minor / Y-axis (${ul})`;
+  }
+  document.getElementById('yAxisLabel').textContent = `Highside [${ul}]`;
+  document.getElementById('xAxisLabel').textContent = `Lateral [${ul}]`;
+  drawPlot();
+}
+
+/* ─── Theme toggle ─────────────────────────────────── */
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('optDark').classList.toggle('active',  currentTheme === 'dark');
+  document.getElementById('optLight').classList.toggle('active', currentTheme === 'light');
+  drawPlot();
+}
+
+/* ─── Nice step: only produces multiples of 1, 2, 5, 10 … ─── */
+function niceStep(maxVal, targetDivisions) {
+  const raw  = maxVal / targetDivisions;
+  const mag  = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  if (norm < 1.5) return mag;
+  if (norm < 3.5) return 2 * mag;
+  if (norm < 7.5) return 5 * mag;
+  return 10 * mag;
+}
+
+/* Round axis limit UP to the next clean multiple of step */
+function niceMax(dataMax, step) {
+  return Math.ceil(dataMax / step) * step;
+}
+
+/* Read a CSS variable from root */
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/* ─── Main draw ────────────────────────────────────── */
+function drawPlot() {
+  const td   = parseFloat(document.getElementById('totalDepth').value) || 8000;
+  const conf = document.getElementById('confidenceLevel').value;
+  const ul   = currentUnit;
+
+  document.getElementById('chartSubtitle').textContent =
+    'Confidence: ' + conf + '  |  TD: ' + td.toLocaleString() + ' ' + ul;
+  document.getElementById('confBadge').textContent =
+    conf.split(' ')[0] + ' ' + conf.split(' ')[1];
+
+  /* Collect tool data */
+  const tools = [];
+  for (let i = 1; i <= 3; i++) {
+    const name  = document.getElementById('name'  + i).value.trim();
+    const major = parseFloat(document.getElementById('major' + i).value);
+    const minor = parseFloat(document.getElementById('minor' + i).value);
+    if (name && !isNaN(major) && !isNaN(minor) && major > 0 && minor > 0)
+      tools.push({ name, major, minor, color: COLORS[i-1], fill: COLORS_DIM[i-1] });
+  }
+  if (tools.length === 0) return;
+
+  /* Legend */
+  document.getElementById('legend').innerHTML = tools.map(t =>
+    `<div class="legend-item">
+      <div class="legend-line" style="background:${t.color};"></div>
+      <span>${t.name} (${t.major} × ${t.minor} ${ul})</span>
+    </div>`
+  ).join('');
+
+  /* Canvas */
+  const canvas = document.getElementById('eouCanvas');
+  const dpr    = window.devicePixelRatio || 1;
+  const W      = canvas.parentElement.offsetWidth - 44 || 600;
+  const H      = Math.round(W * 0.56);
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pad  = { top: 34, right: 38, bottom: 38, left: 58 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top  - pad.bottom;
+  const cx = pad.left + plotW / 2;
+  const cy = pad.top  + plotH / 2;
+
+  /* Axis extents — always round up to a clean 0/5 boundary */
+  const rawMajor = Math.max(...tools.map(t => t.major));
+  const rawMinor = Math.max(...tools.map(t => t.minor));
+
+  const stepX  = niceStep(rawMajor * 1.2, 4);
+  const stepY  = niceStep(rawMinor * 1.3, 3);
+  const axisX  = niceMax(rawMajor * 1.15, stepX);
+  const axisY  = niceMax(rawMinor * 1.25, stepY);
+
+  const scaleX = (plotW / 2) / axisX;
+  const scaleY = (plotH / 2) / axisY;
+
+  /* Background */
+  ctx.fillStyle = cssVar('--canvas-bg');
+  ctx.fillRect(0, 0, W, H);
+
+  /* Grid */
+  ctx.strokeStyle = cssVar('--grid-line');
+  ctx.lineWidth = 0.5;
+  for (let v = -axisX; v <= axisX + 0.001; v += stepX) {
+    const px = cx + v * scaleX;
+    ctx.beginPath(); ctx.moveTo(px, pad.top); ctx.lineTo(px, H - pad.bottom); ctx.stroke();
+  }
+  for (let v = -axisY; v <= axisY + 0.001; v += stepY) {
+    const py = cy - v * scaleY;
+    ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(W - pad.right, py); ctx.stroke();
+  }
+
+  /* Axes */
+  ctx.strokeStyle = cssVar('--axis-line');
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, cy); ctx.lineTo(W - pad.right, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, pad.top); ctx.lineTo(cx, H - pad.bottom); ctx.stroke();
+
+  /* Tick labels */
+  ctx.fillStyle = cssVar('--text-sec');
+  ctx.font = '10px Courier New';
+
+  ctx.textAlign = 'center';
+  ctx.fillText('0', cx, H - pad.bottom + 15);
+  for (let v = stepX; v <= axisX + 0.001; v += stepX) {
+    ctx.fillText( Math.round(v), cx + v * scaleX, H - pad.bottom + 15);
+    ctx.fillText(-Math.round(v), cx - v * scaleX, H - pad.bottom + 15);
+  }
+
+  ctx.textAlign = 'right';
+  for (let v = stepY; v <= axisY + 0.001; v += stepY) {
+    ctx.fillText( Math.round(v), pad.left - 6, cy - v * scaleY + 4);
+    ctx.fillText(-Math.round(v), pad.left - 6, cy + v * scaleY + 4);
+  }
+
+  /* Ellipses — largest first */
+  const sorted = [...tools].sort((a, b) => (b.major * b.minor) - (a.major * a.minor));
+  for (const t of sorted) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, t.major * scaleX, t.minor * scaleY, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = t.fill;
+    ctx.fill();
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  /* TD label + center dot */
+  ctx.fillStyle = cssVar('--td-label');
+  ctx.font = 'bold 12px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(td.toLocaleString() + ' ' + ul, cx + 8, cy - 8);
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4.5, 0, 2 * Math.PI);
+  ctx.fillStyle = cssVar('--center-dot');
+  ctx.fill();
+  ctx.strokeStyle = cssVar('--center-ring');
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  /* ± semi-major callout above each ellipse */
+  for (const t of tools) {
+    ctx.fillStyle = t.color;
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    const topY = cy - t.minor * scaleY - 6;
+    ctx.fillText('±' + t.major + ' ' + ul, cx, topY);
+  }
+}
+
+window.addEventListener('load', () => setTimeout(drawPlot, 60));
+window.addEventListener('resize', drawPlot);
+</script>
+</body>
+</html>
