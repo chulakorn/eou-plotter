@@ -108,15 +108,20 @@ h1 {
 }
 .theme-opt.active { background: var(--btn-bg); color: #fff; }
 
-/* ── Main layout ────────────────────────────────────────── */
+/* ── Main layout — panel left fixed, chart right fills ──── */
 .layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: minmax(260px, 300px) 1fr;
   gap: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px 16px;
   align-items: start;
+}
+/* Stack on true phones — chart on top */
+@media (max-width: 640px) {
+  .layout { grid-template-columns: 1fr; }
+  .chart-wrap { order: -1; }
 }
 
 /* ── Panel (inputs) ─────────────────────────────────────── */
@@ -323,29 +328,9 @@ canvas#eouCanvas {
   margin-top: 6px;
 }
 
-/* ── Mobile: single column, chart on top ────────────────── */
-@media (max-width: 680px) {
-  body { padding-bottom: env(safe-area-inset-bottom, 16px); }
-  .topbar { padding: 12px 14px 10px; }
-  h1 { font-size: 12px; }
-  .layout {
-    grid-template-columns: 1fr;
-    padding: 12px 12px;
-    gap: 14px;
-  }
-  /* Chart first on mobile */
-  .layout { display: flex; flex-direction: column; }
-  .chart-wrap { order: 1; }
-  .panel     { order: 2; }
-  /* On mobile keep tool groups collapsed by default */
-  .axis-y-label { font-size: 9px; }
-  .axis-x-label { font-size: 9px; }
-  input[type="number"], input[type="text"], select { font-size: 16px; } /* prevent iOS zoom */
-}
-
-/* ── Tablet mid-range ───────────────────────────────────── */
-@media (min-width: 681px) and (max-width: 900px) {
-  .layout { grid-template-columns: 260px 1fr; gap: 14px; }
+/* ── Prevent iOS font-zoom on focus ─────────────────────── */
+@media (max-width: 620px) {
+  input[type="number"], input[type="text"], select { font-size: 16px; }
 }
 </style>
 </head>
@@ -360,27 +345,6 @@ canvas#eouCanvas {
 </div>
 
 <div class="layout">
-
-  <!-- ── Chart ── -->
-  <div class="chart-wrap">
-    <div class="chart-meta">
-      <div>
-        <div class="chart-main-title">Wellbore Position Uncertainty</div>
-        <div class="chart-sub" id="chartSubtitle">Enter values and tap Plot</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        <div class="confidence-badge" id="confBadge">3.000 Sigma</div>
-        <div class="legend" id="legend"></div>
-      </div>
-    </div>
-    <div class="axis-wrap">
-      <div class="axis-y-label" id="yAxisLabel">Highside [m]</div>
-      <div style="flex:1;display:flex;flex-direction:column;">
-        <canvas id="eouCanvas"></canvas>
-        <div class="axis-x-label" id="xAxisLabel">Lateral [m]</div>
-      </div>
-    </div>
-  </div>
 
   <!-- ── Inputs ── -->
   <div class="panel">
@@ -470,6 +434,27 @@ canvas#eouCanvas {
     </div>
   </div>
 
+  <!-- ── Chart ── -->
+  <div class="chart-wrap">
+    <div class="chart-meta">
+      <div>
+        <div class="chart-main-title">Wellbore Position Uncertainty</div>
+        <div class="chart-sub" id="chartSubtitle">Enter values and tap Plot</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="confidence-badge" id="confBadge">3.000 Sigma</div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="axis-wrap">
+      <div class="axis-y-label" id="yAxisLabel">Highside [m]</div>
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <canvas id="eouCanvas"></canvas>
+        <div class="axis-x-label" id="xAxisLabel">Lateral [m]</div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- .layout -->
 
 <script>
@@ -527,12 +512,10 @@ function cssVar(name) {
 
 /* ─── Responsive canvas size ────────────────────────────── */
 function canvasSize(canvasEl) {
-  const isMobile = window.innerWidth <= 680;
-  // On mobile, canvas fills width; aspect ratio taller to use vertical space
-  const W = canvasEl.parentElement.offsetWidth - (isMobile ? 28 : 44);
-  const ratio = isMobile ? 0.75 : 0.56;
-  const H = Math.round(W * ratio);
-  return { W: Math.max(W, 200), H: Math.max(H, 150) };
+  const W = Math.max(canvasEl.parentElement.offsetWidth - 28, 200);
+  // Taller ratio only when genuinely narrow (phone stacked view)
+  const ratio = W < 380 ? 0.80 : 0.58;
+  return { W, H: Math.round(W * ratio) };
 }
 
 /* ─── Responsive font/pad ───────────────────────────────── */
