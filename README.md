@@ -2,7 +2,7 @@
 
 A lightweight, zero-dependency web app for visualizing and comparing **Wellbore Position Uncertainty** ellipses across multiple survey tools — built for drilling engineers in the oil & gas industry.
 
-[Demo](chulakorn.github.io/eou-plotter)
+[Demo](https://chulakorn.github.io/eou-plotter/)
 
 ---
 
