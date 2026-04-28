@@ -522,10 +522,10 @@ function canvasSize(canvasEl) {
 function layoutParams(W) {
   const small = W < 360;
   return {
-    pad:      small ? { top:24, right:24, bottom:28, left:38 } : { top:32, right:34, bottom:36, left:52 },
-    tickFont: small ? '9px Courier New'  : '10px Courier New',
-    labelFont:small ? '10px Courier New' : '12px Courier New',
-    dotR:     small ? 3.5 : 4.5,
+    pad:      small ? { top:28, right:28, bottom:34, left:46 } : { top:36, right:38, bottom:42, left:62 },
+    tickFont: small ? '11px Courier New' : '13px Courier New',
+    labelFont:small ? '12px Courier New' : '14px Courier New',
+    dotR:     small ? 4 : 5.5,
     ellW:     small ? 1.5 : 2,
   };
 }
