@@ -2,7 +2,7 @@
 
 A lightweight, zero-dependency web app for visualizing and comparing **Wellbore Position Uncertainty** ellipses across multiple survey tools — built for drilling engineers in the oil & gas industry.
 
-**Live demo → [your-username.github.io/eou-plotter](https://your-username.github.io/eou-plotter)**
+**Live demo → chulakorn.github.io/eou-plotter
 
 ---
 
@@ -10,7 +10,7 @@ A lightweight, zero-dependency web app for visualizing and comparing **Wellbore 
 
 > Dark mode | Three survey tools compared
 
-![EOU Plotter Screenshot](docs/screenshot.png)
+![EOU Plotter Screenshot](https://github.com/chulakorn/eou-plotter/blob/main/eou-plotter%20example.png)
 
 ---
 
@@ -42,56 +42,6 @@ A lightweight, zero-dependency web app for visualizing and comparing **Wellbore 
 
 ---
 
-## How to Deploy on GitHub Pages
-
-### Step 1 — Create the repository
-
-```
-1. Go to https://github.com/new
-2. Repository name: eou-plotter
-3. Set to Public
-4. Click "Create repository"
-```
-
-### Step 2 — Upload the files
-
-**Option A — Drag & drop (no Git required)**
-```
-1. Open your new repo on GitHub
-2. Click "uploading an existing file"
-3. Drag the two files:  index.html  and  README.md
-4. Click "Commit changes"
-```
-
-**Option B — Git command line**
-```bash
-git clone https://github.com/your-username/eou-plotter.git
-cd eou-plotter
-
-# Copy index.html and README.md into this folder, then:
-git add .
-git commit -m "Initial commit: EOU Plotter"
-git push origin main
-```
-
-### Step 3 — Enable GitHub Pages
-
-```
-1. Go to your repo → Settings → Pages
-2. Source: Deploy from a branch
-3. Branch: main  /  (root)
-4. Click Save
-```
-
-### Step 4 — Access your app
-
-After ~60 seconds, your app is live at:
-```
-https://your-username.github.io/eou-plotter
-```
-
----
-
 ## File Structure
 
 ```
@@ -119,8 +69,8 @@ This tool is for **visual comparison** of different survey tools or configuratio
 ## Typical Workflow
 
 ```
-1. Run your survey tool error model (e.g. in Landmark COMPASS, Halliburton WellPlan, or NOV INTEQ)
-2. Export the EOU semi-axes at your target depth for each tool
+1. Run your survey tool error model (e.g. in SLB DOX or DrillPlan, Landmark COMPASS, Halliburton WellPlan, or NOV INTEQ)
+2. Export the EOU value at your target depth for each tool
 3. Enter values into this app
 4. Compare ellipses visually side-by-side
 ```
