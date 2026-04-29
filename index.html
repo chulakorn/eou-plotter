@@ -579,23 +579,21 @@ function drawPlot() {
   const rawMajor = Math.max(...tools.map(t => t.major));
   const rawMinor = Math.max(...tools.map(t => t.minor));
 
-  // Use the same margin factor for both axes so scale is identical
-  const margin  = 1.25;
-  const neededX = rawMajor * margin;
-  const neededY = rawMinor * margin;
+  // One axis range for both X and Y — largest dimension with margin drives both
+  const rawMax  = Math.max(rawMajor, rawMinor);
+  const step    = niceStep(rawMax * 1.25, 4);
+  const axisMax = niceMax(rawMax * 1.25, step);  // same number used for X and Y
 
-  // Single scale: whichever axis is tighter drives the scale
-  const scale   = Math.min((plotW / 2) / neededX, (plotH / 2) / neededY);
-  const scaleX  = scale;
-  const scaleY  = scale;
+  // Fit the square data space into the (possibly non-square) canvas
+  // Use the tighter pixel dimension so ellipse never clips
+  const scale  = Math.min((plotW / 2) / axisMax, (plotH / 2) / axisMax);
+  const scaleX = scale;
+  const scaleY = scale;
 
-  // Axis extents derived FROM scale so grid squares are truly square
-  const axisX   = (plotW / 2) / scale;
-  const axisY   = (plotH / 2) / scale;
-
-  // Nice tick steps based on actual visible range
-  const stepX   = niceStep(axisX, 4);
-  const stepY   = niceStep(axisY, 4);
+  const axisX  = axisMax;
+  const axisY  = axisMax;
+  const stepX  = step;
+  const stepY  = step;
 
   /* Background */
   ctx.fillStyle = cssVar('--canvas-bg');
