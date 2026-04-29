@@ -458,8 +458,8 @@ canvas#eouCanvas {
 </div><!-- .layout -->
 
 <script>
-const COLORS     = ['#58a6ff','#f78166','#3fb950'];
-const COLORS_DIM = ['rgba(88,166,255,0.13)','rgba(247,129,102,0.13)','rgba(63,185,80,0.13)'];
+const COLORS     = ['#0066FF','#FF0000','#CC00CC'];
+const COLORS_DIM = ['rgba(0,102,255,0.13)','rgba(255,0,0,0.13)','rgba(204,0,204,0.13)'];
 
 let currentUnit  = 'm';
 let currentTheme = 'dark';
@@ -522,11 +522,11 @@ function canvasSize(canvasEl) {
 function layoutParams(W) {
   const small = W < 360;
   return {
-    pad:      small ? { top:28, right:28, bottom:34, left:46 } : { top:36, right:38, bottom:42, left:62 },
-    tickFont: small ? '11px Courier New' : '13px Courier New',
-    labelFont:small ? '12px Courier New' : '14px Courier New',
+    pad:      small ? { top:28, right:28, bottom:34, left:46 } : { top:36, right:38, bottom:44, left:66 },
+    tickFont: small ? '12px Courier New' : '14px Courier New',
+    labelFont:small ? '13px Courier New' : '15px Courier New',
     dotR:     small ? 4 : 5.5,
-    ellW:     small ? 1.5 : 2,
+    ellW:     small ? 1.5 : 2.5,
   };
 }
 
@@ -579,18 +579,19 @@ function drawPlot() {
   const rawMajor = Math.max(...tools.map(t => t.major));
   const rawMinor = Math.max(...tools.map(t => t.minor));
 
-  // X axis defines the scale — fit major axis with margin into plot width
-  const stepX  = niceStep(rawMajor * 1.25, 4);
-  const axisX  = niceMax(rawMajor * 1.25, stepX);
+  // X axis defines scale — use plotW fully, snap to nice step
+  const stepX  = niceStep(rawMajor * 1.3, 4);
+  const axisX  = niceMax(rawMajor * 1.3, stepX);
   const scale  = (plotW / 2) / axisX;   // ONE scale from X
 
-  // Y axis uses the exact same scale — grid squares are physically square
+  // Y uses exact same scale — square grid guaranteed
   const scaleX = scale;
   const scaleY = scale;
 
-  // Y range derived from scale + available plot height
-  const axisY  = (plotH / 2) / scale;
-  const stepY  = niceStep(axisY, 4);
+  // Y range derived from scale + plot height — fills all available vertical space
+  const rawAxisY = (plotH / 2) / scale;
+  const stepY    = niceStep(rawAxisY, 4);
+  const axisY    = niceMax(rawAxisY, stepY);
 
   /* Background */
   ctx.fillStyle = cssVar('--canvas-bg');
@@ -656,12 +657,13 @@ function drawPlot() {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  /* ± callout above each ellipse */
+  /* Semi-Major callout — show at top of each ellipse, use major axis value */
   for (const t of tools) {
     ctx.fillStyle = t.color;
     ctx.font = lp.tickFont;
     ctx.textAlign = 'center';
-    ctx.fillText('±' + t.major + ' ' + ul, cx, cy - t.minor * scaleY - 5);
+    // Place label just above the top of the ellipse (minor * scale = top pixel)
+    ctx.fillText('±' + t.major + ' ' + ul, cx, cy - t.minor * scaleY - 7);
   }
 }
 
