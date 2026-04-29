@@ -582,8 +582,9 @@ function drawPlot() {
   const stepY = niceStep(rawMinor * 1.3, 3);
   const axisX = niceMax(rawMajor * 1.15, stepX);
   const axisY = niceMax(rawMinor * 1.25, stepY);
-  const scaleX = (plotW / 2) / axisX;
-  const scaleY = (plotH / 2) / axisY;
+  const scale  = Math.min((plotW / 2) / axisX, (plotH / 2) / axisY);
+  const scaleX = scale;
+  const scaleY = scale;
 
   /* Background */
   ctx.fillStyle = cssVar('--canvas-bg');
