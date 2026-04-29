@@ -578,13 +578,24 @@ function drawPlot() {
 
   const rawMajor = Math.max(...tools.map(t => t.major));
   const rawMinor = Math.max(...tools.map(t => t.minor));
-  const stepX = niceStep(rawMajor * 1.2, 4);
-  const stepY = niceStep(rawMinor * 1.3, 3);
-  const axisX = niceMax(rawMajor * 1.15, stepX);
-  const axisY = niceMax(rawMinor * 1.25, stepY);
-  const scale  = Math.min((plotW / 2) / axisX, (plotH / 2) / axisY);
-  const scaleX = scale;
-  const scaleY = scale;
+
+  // Use the same margin factor for both axes so scale is identical
+  const margin  = 1.25;
+  const neededX = rawMajor * margin;
+  const neededY = rawMinor * margin;
+
+  // Single scale: whichever axis is tighter drives the scale
+  const scale   = Math.min((plotW / 2) / neededX, (plotH / 2) / neededY);
+  const scaleX  = scale;
+  const scaleY  = scale;
+
+  // Axis extents derived FROM scale so grid squares are truly square
+  const axisX   = (plotW / 2) / scale;
+  const axisY   = (plotH / 2) / scale;
+
+  // Nice tick steps based on actual visible range
+  const stepX   = niceStep(axisX, 4);
+  const stepY   = niceStep(axisY, 4);
 
   /* Background */
   ctx.fillStyle = cssVar('--canvas-bg');
