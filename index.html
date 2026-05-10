@@ -332,6 +332,59 @@ canvas#eouCanvas {
 @media (max-width: 620px) {
   input[type="number"], input[type="text"], select { font-size: 16px; }
 }
+
+/* ── Axis scale row ─────────────────────────────────────── */
+.scale-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.scale-col label { margin-bottom: 4px; }
+.auto-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: -6px;
+  margin-bottom: 10px;
+}
+.auto-row input[type="checkbox"] {
+  width: 15px; height: 15px;
+  accent-color: var(--btn-bg);
+  cursor: pointer;
+  margin: 0;
+  min-height: unset;
+}
+.auto-row label {
+  font-size: 11px;
+  color: var(--text-sec);
+  margin: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Export button ──────────────────────────────────────── */
+.btn-export {
+  width: 100%;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 48px;
+  margin-top: 8px;
+}
+.btn-export:hover { background: var(--accent); color: #fff; }
 </style>
 </head>
 <body>
@@ -350,6 +403,20 @@ canvas#eouCanvas {
   <div class="panel">
     <div class="panel-title">Input Parameters</div>
     <div class="panel-body">
+
+      <!-- Well Info -->
+      <div class="global-field">
+        <label>Field Name</label>
+        <input type="text" id="fieldName" placeholder="e.g. Mahakam Block">
+      </div>
+      <div class="global-field">
+        <label>Well Name</label>
+        <input type="text" id="wellName" placeholder="e.g. MBH-01">
+      </div>
+      <div class="global-field">
+        <label>Section / Interval</label>
+        <input type="text" id="sectionName" placeholder="e.g. 8½″ Section">
+      </div>
 
       <div class="global-field">
         <label>Unit System</label>
@@ -372,13 +439,33 @@ canvas#eouCanvas {
           <option value="3.000 Sigma (3D — 99.7%)" selected>3.000 Sigma (3D — 99.7%)</option>
         </select>
       </div>
+
+      <!-- Axis Scale -->
+      <div class="global-field">
+        <label>Axis Scale</label>
+        <div class="scale-row">
+          <div class="scale-col">
+            <label id="lbl_axisX">X Max (m)</label>
+            <input type="number" id="axisXMax" placeholder="Auto" min="1" step="10" inputmode="decimal">
+          </div>
+          <div class="scale-col">
+            <label id="lbl_axisY">Y Max (m)</label>
+            <input type="number" id="axisYMax" placeholder="Auto" min="1" step="10" inputmode="decimal">
+          </div>
+        </div>
+        <div class="auto-row">
+          <input type="checkbox" id="axisAuto" checked onchange="toggleAxisAuto()">
+          <label for="axisAuto">Auto-scale (fit to data)</label>
+        </div>
+      </div>
+
     </div>
 
     <!-- Tool 1 — open by default -->
     <div class="field-group open" id="grp1">
       <div class="field-group-header" onclick="toggleGroup('grp1')">
         <div class="field-group-left">
-          <div class="color-dot" style="background:#58a6ff;"></div>Survey Tool 1
+          <div class="color-dot" style="background:#0066FF;"></div>Survey Tool 1
         </div>
         <span class="chevron">▼</span>
       </div>
@@ -396,7 +483,7 @@ canvas#eouCanvas {
     <div class="field-group open" id="grp2">
       <div class="field-group-header" onclick="toggleGroup('grp2')">
         <div class="field-group-left">
-          <div class="color-dot" style="background:#f78166;"></div>Survey Tool 2
+          <div class="color-dot" style="background:#FF0000;"></div>Survey Tool 2
         </div>
         <span class="chevron">▼</span>
       </div>
@@ -414,7 +501,7 @@ canvas#eouCanvas {
     <div class="field-group" id="grp3">
       <div class="field-group-header" onclick="toggleGroup('grp3')">
         <div class="field-group-left">
-          <div class="color-dot" style="background:#3fb950;"></div>
+          <div class="color-dot" style="background:#CC00CC;"></div>
           Survey Tool 3 <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">(optional)</span>
         </div>
         <span class="chevron">▼</span>
@@ -431,6 +518,7 @@ canvas#eouCanvas {
 
     <div class="btn-wrap">
       <button class="btn" onclick="drawPlot()">&#9654; Plot Ellipses</button>
+      <button class="btn-export" onclick="exportPNG()">&#8681; Export PNG (3×)</button>
     </div>
   </div>
 
@@ -438,7 +526,7 @@ canvas#eouCanvas {
   <div class="chart-wrap">
     <div class="chart-meta">
       <div>
-        <div class="chart-main-title">Wellbore Position Uncertainty</div>
+        <div class="chart-main-title" id="chartTitle">Wellbore Position Uncertainty</div>
         <div class="chart-sub" id="chartSubtitle">Enter values and tap Plot</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -475,6 +563,8 @@ function setUnit(u) {
   document.getElementById('unitM').classList.toggle('active', u === 'm');
   document.getElementById('unitFt').classList.toggle('active', u === 'ft');
   document.getElementById('tdLabel').textContent = `Total Depth (${u})`;
+  document.getElementById('lbl_axisX').textContent = `X Max (${u})`;
+  document.getElementById('lbl_axisY').textContent = `Y Max (${u})`;
   for (let i = 1; i <= 3; i++) {
     document.getElementById('lbl_major' + i).textContent = `Semi-Major / X-axis (${u})`;
     document.getElementById('lbl_minor' + i).textContent = `Semi-Minor / Y-axis (${u})`;
@@ -535,7 +625,14 @@ function drawPlot() {
   const td   = parseFloat(document.getElementById('totalDepth').value) || 8000;
   const conf = document.getElementById('confidenceLevel').value;
   const ul   = currentUnit;
+  const fieldName   = document.getElementById('fieldName').value.trim();
+  const wellName    = document.getElementById('wellName').value.trim();
+  const sectionName = document.getElementById('sectionName').value.trim();
 
+  // Update chart title block
+  const titleParts = [fieldName, wellName, sectionName].filter(Boolean);
+  document.getElementById('chartTitle').textContent =
+    titleParts.length ? titleParts.join('  |  ') : 'Wellbore Position Uncertainty';
   document.getElementById('chartSubtitle').textContent =
     'Confidence: ' + conf + '  |  TD: ' + td.toLocaleString() + ' ' + ul;
   document.getElementById('confBadge').textContent =
@@ -579,19 +676,27 @@ function drawPlot() {
   const rawMajor = Math.max(...tools.map(t => t.major));
   const rawMinor = Math.max(...tools.map(t => t.minor));
 
-  // X axis defines scale — use plotW fully, snap to nice step
-  const stepX  = niceStep(rawMajor * 1.3, 4);
-  const axisX  = niceMax(rawMajor * 1.3, stepX);
-  const scale  = (plotW / 2) / axisX;   // ONE scale from X
+  // Axis scale — manual override or auto
+  const isAuto   = document.getElementById('axisAuto').checked;
+  const manualX  = parseFloat(document.getElementById('axisXMax').value);
+  const manualY  = parseFloat(document.getElementById('axisYMax').value);
 
-  // Y uses exact same scale — square grid guaranteed
-  const scaleX = scale;
-  const scaleY = scale;
+  // X axis defines scale
+  const stepX   = niceStep(rawMajor * 1.3, 4);
+  const autoAxX = niceMax(rawMajor * 1.3, stepX);
+  const axisX   = (!isAuto && !isNaN(manualX) && manualX > 0)
+                    ? niceMax(manualX, stepX)
+                    : autoAxX;
+  const scale   = (plotW / 2) / axisX;
+  const scaleX  = scale;
+  const scaleY  = scale;
 
-  // Y range derived from scale + plot height — fills all available vertical space
-  const rawAxisY = (plotH / 2) / scale;
-  const stepY    = niceStep(rawAxisY, 4);
-  const axisY    = niceMax(rawAxisY, stepY);
+  // Y range from same scale — manual override or natural
+  const naturalY = (plotH / 2) / scale;
+  const axisY    = (!isAuto && !isNaN(manualY) && manualY > 0)
+                    ? manualY
+                    : naturalY;
+  const stepY    = stepX;
 
   /* Background */
   ctx.fillStyle = cssVar('--canvas-bg');
@@ -657,18 +762,149 @@ function drawPlot() {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  /* Semi-Major callout — show at top of each ellipse, use major axis value */
+  /* Semi-Major callout — placed at right tip of each ellipse (where ±major lives) */
   for (const t of tools) {
     ctx.fillStyle = t.color;
     ctx.font = lp.tickFont;
-    ctx.textAlign = 'center';
-    // Place label just above the top of the ellipse (minor * scale = top pixel)
-    ctx.fillText('±' + t.major + ' ' + ul, cx, cy - t.minor * scaleY - 7);
+    ctx.textAlign = 'left';
+    const tipX = cx + t.major * scaleX + 6;
+    const tipY = cy + 4;
+    ctx.fillText('±' + t.major + ' ' + ul, tipX, tipY);
   }
 }
 
-/* ─── Init ──────────────────────────────────────────────── */
-window.addEventListener('load', () => setTimeout(drawPlot, 60));
+/* ─── PNG Export at 3× — always white background ──────── */
+function exportPNG() {
+  drawPlot(); // ensure latest state
+
+  const srcCanvas = document.getElementById('eouCanvas');
+  const { W, H }  = canvasSize(srcCanvas);
+  const dpr       = 3;
+
+  const exp = document.createElement('canvas');
+  exp.width  = W * dpr;
+  exp.height = H * dpr;
+  const ctx  = exp.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw plot using light-mode colors for clean print output
+  const lp  = layoutParams(W);
+  const pad = lp.pad;
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top  - pad.bottom;
+  const cx = pad.left + plotW / 2;
+  const cy = pad.top  + plotH / 2;
+  const ul = currentUnit;
+  const td = parseFloat(document.getElementById('totalDepth').value) || 8000;
+
+  const tools = [];
+  for (let i = 1; i <= 3; i++) {
+    const name  = document.getElementById('name'  + i).value.trim();
+    const major = parseFloat(document.getElementById('major' + i).value);
+    const minor = parseFloat(document.getElementById('minor' + i).value);
+    if (name && !isNaN(major) && !isNaN(minor) && major > 0 && minor > 0)
+      tools.push({ name, major, minor, color: COLORS[i-1], fill: COLORS_DIM[i-1] });
+  }
+  if (tools.length === 0) return;
+
+  const rawMajor = Math.max(...tools.map(t => t.major));
+  const isAuto   = document.getElementById('axisAuto').checked;
+  const manualX  = parseFloat(document.getElementById('axisXMax').value);
+  const manualY  = parseFloat(document.getElementById('axisYMax').value);
+  const stepX    = niceStep(rawMajor * 1.3, 4);
+  const autoAxX  = niceMax(rawMajor * 1.3, stepX);
+  const axisX    = (!isAuto && !isNaN(manualX) && manualX > 0) ? niceMax(manualX, stepX) : autoAxX;
+  const scale    = (plotW / 2) / axisX;
+  const scaleX   = scale, scaleY = scale;
+  const axisY    = (!isAuto && !isNaN(manualY) && manualY > 0) ? manualY : (plotH / 2) / scale;
+  const stepY    = stepX;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(180,188,196,0.7)';
+  ctx.lineWidth = 0.5;
+  for (let v = -axisX; v <= axisX + 0.001; v += stepX) {
+    const px = cx + v * scaleX;
+    ctx.beginPath(); ctx.moveTo(px, pad.top); ctx.lineTo(px, H - pad.bottom); ctx.stroke();
+  }
+  for (let v = -axisY; v <= axisY + 0.001; v += stepY) {
+    const py = cy - v * scaleY;
+    ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(W - pad.right, py); ctx.stroke();
+  }
+  // Axes
+  ctx.strokeStyle = '#aab0b8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, cy); ctx.lineTo(W - pad.right, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, pad.top); ctx.lineTo(cx, H - pad.bottom); ctx.stroke();
+  // Ticks
+  ctx.fillStyle = '#57606a'; ctx.font = lp.tickFont;
+  ctx.textAlign = 'center';
+  ctx.fillText('0', cx, H - pad.bottom + 13);
+  for (let v = stepX; v <= axisX + 0.001; v += stepX) {
+    ctx.fillText( Math.round(v), cx + v * scaleX, H - pad.bottom + 13);
+    ctx.fillText(-Math.round(v), cx - v * scaleX, H - pad.bottom + 13);
+  }
+  ctx.textAlign = 'right';
+  for (let v = stepY; v <= axisY + 0.001; v += stepY) {
+    ctx.fillText( Math.round(v), pad.left - 5, cy - v * scaleY + 4);
+    ctx.fillText(-Math.round(v), pad.left - 5, cy + v * scaleY + 4);
+  }
+  // Ellipses
+  const sorted = [...tools].sort((a, b) => (b.major * b.minor) - (a.major * a.minor));
+  for (const t of sorted) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, t.major * scaleX, t.minor * scaleY, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = t.fill;
+    ctx.fill();
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth = lp.ellW;
+    ctx.stroke();
+  }
+  // TD label
+  ctx.fillStyle = '#1c2128';
+  ctx.font = 'bold ' + lp.labelFont;
+  ctx.textAlign = 'left';
+  ctx.fillText(td.toLocaleString() + ' ' + ul, cx + 7, cy - 7);
+  // Center dot
+  ctx.beginPath(); ctx.arc(cx, cy, lp.dotR, 0, 2 * Math.PI);
+  ctx.fillStyle = '#1c2128'; ctx.fill();
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Callouts
+  for (const t of tools) {
+    ctx.fillStyle = t.color;
+    ctx.font = lp.tickFont;
+    ctx.textAlign = 'left';
+    ctx.fillText('±' + t.major + ' ' + ul, cx + t.major * scaleX + 6, cy + 4);
+  }
+
+  // Build filename
+  const well    = document.getElementById('wellName').value.trim()    || 'Well';
+  const field   = document.getElementById('fieldName').value.trim()   || '';
+  const section = document.getElementById('sectionName').value.trim() || '';
+  const conf    = document.getElementById('confidenceLevel').value.split(' ')[0];
+  const fname   = [field, well, section, 'TD' + td, conf + 'Sigma', 'EOU']
+                    .filter(Boolean)
+                    .join('_')
+                    .replace(/[^a-zA-Z0-9_\-]/g, '') + '.png';
+
+  const link = document.createElement('a');
+  link.download = fname;
+  link.href = exp.toDataURL('image/png');
+  link.click();
+}
+
+/* ─── Axis auto toggle ─────────────────────────────────── */
+function toggleAxisAuto() {
+  const auto = document.getElementById('axisAuto').checked;
+  document.getElementById('axisXMax').disabled = auto;
+  document.getElementById('axisYMax').disabled = auto;
+  document.getElementById('axisXMax').style.opacity = auto ? '0.4' : '1';
+  document.getElementById('axisYMax').style.opacity = auto ? '0.4' : '1';
+}
+// Init disabled state
+window.addEventListener('load', () => { toggleAxisAuto(); setTimeout(drawPlot, 60); });
 window.addEventListener('resize', drawPlot);
 
 /* Close keyboard and redraw on Done/Enter on mobile */
