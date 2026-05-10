@@ -434,9 +434,10 @@ canvas#eouCanvas {
       <div class="global-field">
         <label>Confidence Level</label>
         <select id="confidenceLevel">
-          <option value="1.000 Sigma (1D — 68%)">1.000 Sigma (1D — 68%)</option>
-          <option value="2.000 Sigma (2D — 95%)">2.000 Sigma (2D — 95%)</option>
-          <option value="3.000 Sigma (3D — 99.7%)" selected>3.000 Sigma (3D — 99.7%)</option>
+          <option value="1.000 Sigma (2D — 39.35%)">1.000 Sigma (2D — 39.35%)</option>
+          <option value="2.000 Sigma (2D — 86.47%)">2.000 Sigma (2D — 86.47%)</option>
+          <option value="2.795 Sigma (2D — 97.97% / 3D — 95.00%)">2.795 Sigma (2D — 97.97% / 3D — 95.00%)</option>
+          <option value="3.000 Sigma (2D — 98.89%)" selected>3.000 Sigma (2D — 98.89%)</option>
         </select>
       </div>
 
@@ -799,13 +800,22 @@ function exportPNG() {
   const srcCanvas = document.getElementById('eouCanvas');
   const { W: plotW_px, H: plotH_px } = canvasSize(srcCanvas);
 
-  // Header / footer heights (logical px before dpr scale)
-  const HDR   = 70;   // title block at top
-  const FOOT  = 30;   // x-axis label + bottom padding
-  const YSIDE = 28;   // y-axis label width on left
-  const PAD   = 16;   // outer padding
+  const HDR   = 70;
+  const FOOT  = 30;
+  const YSIDE = 28;
+  const PAD   = 16;
 
-  const totalW = plotW_px + YSIDE + PAD * 2;
+  // Pre-measure right column so legend never clips
+  const measureCtx  = document.createElement('canvas').getContext('2d');
+  const badgeText   = conf.split(' ')[0] + ' ' + conf.split(' ')[1];
+  measureCtx.font   = 'bold 11px Courier New';
+  const badgeW      = measureCtx.measureText(badgeText).width + 20;
+  measureCtx.font   = '11px Courier New';
+  const legendLines = tools.map(t => t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')');
+  const maxLegW     = Math.max(...legendLines.map(l => measureCtx.measureText(l).width)) + 28;
+  const rightColW   = Math.max(badgeW, maxLegW) + PAD;
+
+  const totalW = plotW_px + YSIDE + PAD * 2 + rightColW;
   const totalH = plotH_px + HDR + FOOT + PAD * 2;
 
   const exp = document.createElement('canvas');
@@ -835,32 +845,37 @@ function exportPNG() {
   ctx.font      = '11px Courier New';
   ctx.fillText(subText, PAD + YSIDE, PAD + 36);
 
-  // Confidence badge (top right)
-  const badgeText = conf.split(' ')[0] + ' ' + conf.split(' ')[1];
-  ctx.font = 'bold 10px Courier New';
-  const bw = ctx.measureText(badgeText).width + 16;
-  const bx = totalW - PAD - bw;
-  const by = PAD + 6;
+  // Confidence badge (top right) — anchored to right column
+  const rcX = totalW - PAD - rightColW + PAD / 2;  // left edge of right column
+  ctx.font = 'bold 11px Courier New';
+  const bw  = ctx.measureText(badgeText).width + 16;
+  const by  = PAD + 6;
   ctx.fillStyle   = '#f0f1f3';
   ctx.strokeStyle = '#c4cdd6';
   ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.roundRect(bx, by, bw, 18, 3);
+  ctx.roundRect(rcX, by, bw, 20, 3);
   ctx.fill(); ctx.stroke();
   ctx.fillStyle   = '#57606a';
   ctx.textAlign   = 'center';
-  ctx.fillText(badgeText, bx + bw / 2, by + 12);
+  ctx.fillText(badgeText, rcX + bw / 2, by + 13);
 
-  // Legend (below badge)
-  let legendY = by + 26;
-  ctx.font      = '10px Courier New';
+  // Legend — left-aligned under badge, full names visible
+  let legendY = by + 30;
+  ctx.font      = '11px Courier New';
   ctx.textAlign = 'left';
   for (const t of tools) {
-    ctx.fillStyle   = t.color;
-    ctx.fillRect(bx, legendY - 1, 18, 2);
-    ctx.fillStyle = '#57606a';
-    ctx.fillText(t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')', bx + 22, legendY + 3);
-    legendY += 14;
+    // colour line swatch
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(rcX, legendY + 1);
+    ctx.lineTo(rcX + 20, legendY + 1);
+    ctx.stroke();
+    // label
+    ctx.fillStyle = '#1c2128';
+    ctx.fillText(legendLines[tools.indexOf(t)], rcX + 26, legendY + 5);
+    legendY += 16;
   }
 
   // Divider line below header
