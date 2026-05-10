@@ -530,10 +530,7 @@ canvas#eouCanvas {
         <div class="chart-main-title" id="chartTitle">Wellbore Position Uncertainty</div>
         <div class="chart-sub" id="chartSubtitle">Enter values and tap Plot</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        <div class="confidence-badge" id="confBadge">3.000 Sigma</div>
-        <div class="legend" id="legend"></div>
-      </div>
+      <div class="confidence-badge" id="confBadge">3.000 Sigma</div>
     </div>
     <div class="axis-wrap">
       <div class="axis-y-label" id="yAxisLabel">Highside [m]</div>
@@ -647,13 +644,6 @@ function drawPlot() {
     if (name && !isNaN(major) && !isNaN(minor) && major > 0 && minor > 0)
       tools.push({ name, major, minor, color: COLORS[i-1], fill: COLORS_DIM[i-1] });
   }
-
-  document.getElementById('legend').innerHTML = tools.map(t =>
-    `<div class="legend-item">
-      <div class="legend-line" style="background:${t.color};"></div>
-      <span>${t.name} (${t.major}×${t.minor} ${ul})</span>
-    </div>`
-  ).join('');
 
   if (tools.length === 0) return;
 
@@ -772,6 +762,61 @@ function drawPlot() {
     const tipY = cy + 4;
     ctx.fillText('±' + t.major + ' ' + ul, tipX, tipY);
   }
+
+  /* ── In-plot legend — top-right corner ── */
+  const isDark    = currentTheme === 'dark';
+  const legFont   = lp.tickFont;
+  const legSmFont = (parseInt(lp.tickFont) - 1) + 'px Courier New';
+  const lineH     = 18;
+  const legPad    = 10;
+  const swatchW   = 20;
+  const swatchGap = 6;
+
+  // Measure widest label to size the box
+  ctx.font = legFont;
+  const maxLabelW = Math.max(...tools.map(t =>
+    ctx.measureText(t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')').width
+  ));
+  const boxW = legPad * 2 + swatchW + swatchGap + maxLabelW;
+  const boxH = legPad * 2 + tools.length * lineH * 1.55;
+
+  const bx = pad.left + plotW - boxW - 10;   // 10px from right edge of plot
+  const by = pad.top + 10;                    // 10px from top edge of plot
+
+  // Semi-transparent background
+  ctx.fillStyle = isDark ? 'rgba(13,17,23,0.82)' : 'rgba(255,255,255,0.88)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, boxW, boxH, 5);
+  ctx.fill();
+  ctx.strokeStyle = isDark ? '#30363d' : '#d0d7de';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Legend rows
+  let ry = by + legPad + 4;
+  for (const t of tools) {
+    // Colour swatch line
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(bx + legPad, ry + 4);
+    ctx.lineTo(bx + legPad + swatchW, ry + 4);
+    ctx.stroke();
+
+    // Tool name
+    ctx.fillStyle = isDark ? '#e6edf3' : '#1c2128';
+    ctx.font      = legFont;
+    ctx.textAlign = 'left';
+    ctx.fillText(t.name, bx + legPad + swatchW + swatchGap, ry + 6);
+
+    // Dimensions on second line
+    ry += lineH;
+    ctx.fillStyle = isDark ? '#8b949e' : '#57606a';
+    ctx.font      = legSmFont;
+    ctx.fillText(t.major + ' × ' + t.minor + ' ' + ul, bx + legPad + swatchW + swatchGap, ry + 2);
+
+    ry += lineH * 0.55;
+  }
 }
 
 /* ─── PNG Export — full composition with title block ───── */
@@ -795,27 +840,20 @@ function exportPNG() {
   }
   if (tools.length === 0) return;
 
-  // Layout constants for export canvas
+  // Layout constants for export canvas — no right column, legend is inside plot
   const dpr       = 3;
   const srcCanvas = document.getElementById('eouCanvas');
   const { W: plotW_px, H: plotH_px } = canvasSize(srcCanvas);
 
-  const HDR   = 70;
+  const HDR   = 56;
   const FOOT  = 30;
   const YSIDE = 28;
   const PAD   = 16;
 
-  // Pre-measure right column so legend never clips
-  const measureCtx  = document.createElement('canvas').getContext('2d');
   const badgeText   = conf.split(' ')[0] + ' ' + conf.split(' ')[1];
-  measureCtx.font   = 'bold 11px Courier New';
-  const badgeW      = measureCtx.measureText(badgeText).width + 20;
-  measureCtx.font   = '11px Courier New';
   const legendLines = tools.map(t => t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')');
-  const maxLegW     = Math.max(...legendLines.map(l => measureCtx.measureText(l).width)) + 28;
-  const rightColW   = Math.max(badgeW, maxLegW) + PAD;
 
-  const totalW = plotW_px + YSIDE + PAD * 2 + rightColW;
+  const totalW = plotW_px + YSIDE + PAD * 2;
   const totalH = plotH_px + HDR + FOOT + PAD * 2;
 
   const exp = document.createElement('canvas');
@@ -843,40 +881,22 @@ function exportPNG() {
 
   ctx.fillStyle = '#57606a';
   ctx.font      = '11px Courier New';
-  ctx.fillText(subText, PAD + YSIDE, PAD + 36);
+  ctx.fillText(subText, PAD + YSIDE, PAD + 34);
 
-  // Confidence badge (top right) — anchored to right column
-  const rcX = totalW - PAD - rightColW + PAD / 2;  // left edge of right column
-  ctx.font = 'bold 11px Courier New';
+  // Confidence badge — top right of header
+  ctx.font = 'bold 10px Courier New';
   const bw  = ctx.measureText(badgeText).width + 16;
-  const by  = PAD + 6;
+  const bx  = totalW - PAD - bw;
+  const by  = PAD + 4;
   ctx.fillStyle   = '#f0f1f3';
   ctx.strokeStyle = '#c4cdd6';
   ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.roundRect(rcX, by, bw, 20, 3);
+  ctx.roundRect(bx, by, bw, 20, 3);
   ctx.fill(); ctx.stroke();
   ctx.fillStyle   = '#57606a';
   ctx.textAlign   = 'center';
-  ctx.fillText(badgeText, rcX + bw / 2, by + 13);
-
-  // Legend — left-aligned under badge, full names visible
-  let legendY = by + 30;
-  ctx.font      = '11px Courier New';
-  ctx.textAlign = 'left';
-  for (const t of tools) {
-    // colour line swatch
-    ctx.strokeStyle = t.color;
-    ctx.lineWidth   = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(rcX, legendY + 1);
-    ctx.lineTo(rcX + 20, legendY + 1);
-    ctx.stroke();
-    // label
-    ctx.fillStyle = '#1c2128';
-    ctx.fillText(legendLines[tools.indexOf(t)], rcX + 26, legendY + 5);
-    legendY += 16;
-  }
+  ctx.fillText(badgeText, bx + bw / 2, by + 13);
 
   // Divider line below header
   ctx.strokeStyle = '#d0d7de';
@@ -985,6 +1005,52 @@ function exportPNG() {
     ctx.font        = lp.tickFont;
     ctx.textAlign   = 'left';
     ctx.fillText('±' + t.major + ' ' + ul, ox + t.major * scaleX + 6, oy + 4);
+  }
+
+  // ── In-plot legend — top-right of plot area (white bg, print-clean) ──
+  const legFont   = lp.tickFont;
+  const legSmFont = (parseInt(lp.tickFont) - 1) + 'px Courier New';
+  const lineH     = 18;
+  const legPad    = 10;
+  const swatchW   = 20;
+  const swatchGap = 6;
+
+  ctx.font = legFont;
+  const maxExpLabelW = Math.max(...tools.map(t =>
+    ctx.measureText(t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')').width
+  ));
+  const expBoxW = legPad * 2 + swatchW + swatchGap + maxExpLabelW;
+  const expBoxH = legPad * 2 + tools.length * lineH * 1.55;
+
+  const ebx = PAD + YSIDE + pad.left + pW - expBoxW - 10;
+  const eby = HDR + PAD + pad.top + 10;
+
+  ctx.fillStyle   = 'rgba(255,255,255,0.90)';
+  ctx.strokeStyle = '#d0d7de';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.roundRect(ebx, eby, expBoxW, expBoxH, 5);
+  ctx.fill(); ctx.stroke();
+
+  let ery = eby + legPad + 4;
+  for (const t of tools) {
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(ebx + legPad, ery + 4);
+    ctx.lineTo(ebx + legPad + swatchW, ery + 4);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1c2128';
+    ctx.font      = legFont;
+    ctx.textAlign = 'left';
+    ctx.fillText(t.name, ebx + legPad + swatchW + swatchGap, ery + 6);
+
+    ery += lineH;
+    ctx.fillStyle = '#57606a';
+    ctx.font      = legSmFont;
+    ctx.fillText(t.major + ' × ' + t.minor + ' ' + ul, ebx + legPad + swatchW + swatchGap, ery + 2);
+    ery += lineH * 0.55;
   }
 
   // ── Footer: app credit ──
