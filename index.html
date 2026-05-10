@@ -772,16 +772,20 @@ function drawPlot() {
   const swatchW   = 20;
   const swatchGap = 6;
 
-  // Measure widest label to size the box
+  // Measure each line separately — name on line 1, dimensions on line 2
   ctx.font = legFont;
-  const maxLabelW = Math.max(...tools.map(t =>
-    ctx.measureText(t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')').width
-  ));
-  const boxW = legPad * 2 + swatchW + swatchGap + maxLabelW;
-  const boxH = legPad * 2 + tools.length * lineH * 1.55;
+  const nameWidths = tools.map(t => ctx.measureText(t.name).width);
+  ctx.font = legSmFont;
+  const dimWidths  = tools.map(t => ctx.measureText(t.major + ' × ' + t.minor + ' ' + ul).width);
+  const maxLabelW  = Math.max(...nameWidths, ...dimWidths);
 
-  const bx = pad.left + plotW - boxW - 10;   // 10px from right edge of plot
-  const by = pad.top + 10;                    // 10px from top edge of plot
+  const boxW = legPad * 2 + swatchW + swatchGap + maxLabelW + 8;
+  const boxH = legPad * 2 + tools.length * lineH * 1.6;
+
+  // Right edge of the plot data area
+  const plotRight = pad.left + plotW;
+  const bx = plotRight - boxW - 10;
+  const by = pad.top + 10;
 
   // Semi-transparent background
   ctx.fillStyle = isDark ? 'rgba(13,17,23,0.82)' : 'rgba(255,255,255,0.88)';
@@ -1017,12 +1021,15 @@ function exportPNG() {
 
   ctx.font = legFont;
   const maxExpLabelW = Math.max(...tools.map(t =>
-    ctx.measureText(t.name + ' (' + t.major + '×' + t.minor + ' ' + ul + ')').width
+    ctx.measureText(t.name).width,
+    ctx.measureText(t.major + ' × ' + t.minor + ' ' + ul).width
   ));
-  const expBoxW = legPad * 2 + swatchW + swatchGap + maxExpLabelW;
-  const expBoxH = legPad * 2 + tools.length * lineH * 1.55;
+  const expBoxW = legPad * 2 + swatchW + swatchGap + maxExpLabelW + 8;
+  const expBoxH = legPad * 2 + tools.length * lineH * 1.6;
 
-  const ebx = PAD + YSIDE + pad.left + pW - expBoxW - 10;
+  // Anchor to right edge of actual plot data area, 10px inset
+  const plotRightEdge = PAD + YSIDE + pad.left + pW;
+  const ebx = plotRightEdge - expBoxW - 10;
   const eby = HDR + PAD + pad.top + 10;
 
   ctx.fillStyle   = 'rgba(255,255,255,0.90)';
